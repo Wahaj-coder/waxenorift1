@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgl1 \
     libglib2.0-0 \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
@@ -30,7 +31,7 @@ RUN mkdir -p /workspace/models \
 
 # ------------------------------------------------------------
 # Copy requirements first for layer caching
-# (NOTE: this is the cleaned requirements.txt WITHOUT torch/tf)
+# (requirements.txt should NOT include torch / tensorflow)
 # ------------------------------------------------------------
 COPY requirements.txt .
 
@@ -40,9 +41,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 
 # ------------------------------------------------------------
-# Install GPU-enabled PyTorch & TorchVision
-# (These wheels include CUDA libs and will use GPU if drivers exist)
-# Adjust versions if needed.
+# Install GPU-enabled PyTorch & TorchVision (CUDA 12.1)
 # ------------------------------------------------------------
 RUN pip install --no-cache-dir \
     torch==2.4.1+cu121 \
@@ -51,23 +50,69 @@ RUN pip install --no-cache-dir \
 
 # ------------------------------------------------------------
 # Install GPU-enabled TensorFlow
-# TensorFlow 2.17+ supports "and-cuda" extra to pull CUDA-enabled build.
-# If this errors due to versioning on your side, you can pin a different version.
 # ------------------------------------------------------------
 RUN pip install --no-cache-dir "tensorflow[and-cuda]==2.17.0"
 
 # ------------------------------------------------------------
 # Install the rest of your Python dependencies
-# (No torch / tf here, they are already installed as GPU versions)
+# (torch / tf already installed as GPU builds)
 # ------------------------------------------------------------
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ------------------------------------------------------------
 # Clone ViTPose repository and install its dependencies
-# (This will reuse the already-installed torch where possible)
 # ------------------------------------------------------------
 RUN git clone https://github.com/jaehyunnn/ViTPose_pytorch.git /workspace/ViTPose_pytorch && \
     pip install --no-cache-dir -r /workspace/ViTPose_pytorch/requirements.txt
+
+# ------------------------------------------------------------
+# Download model weights from Google Drive (BAKED INTO IMAGE)
+# Uses confirm-token trick to bypass virus scan page
+# ------------------------------------------------------------
+RUN set -eux; \
+    mkdir -p /workspace/models; \
+    download_from_gdrive() { \
+        fileid="$1"; \
+        filename="$2"; \
+        tmpdir="$(mktemp -d)"; \
+        cd "$tmpdir"; \
+        wget --quiet --save-cookies cookies.txt --keep-session-cookies --no-check-certificate \
+          "https://docs.google.com/uc?export=download&id=${fileid}" -O- \
+          | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1/p' > confirm.txt || true; \
+        confirm="$(cat confirm.txt 2>/dev/null || true)"; \
+        if [ -n "$confirm" ]; then \
+          wget --quiet --load-cookies cookies.txt --no-check-certificate \
+            "https://docs.google.com/uc?export=download&confirm=${confirm}&id=${fileid}" \
+            -O "$filename"; \
+        else \
+          wget --quiet --load-cookies cookies.txt --no-check-certificate \
+            "https://docs.google.com/uc?export=download&id=${fileid}" \
+            -O "$filename"; \
+        fi; \
+        mv "$filename" /workspace/models/"$filename"; \
+        cd /workspace; \
+        rm -rf "$tmpdir"; \
+    }; \
+    \
+    # 1) Ball YOLO model
+    download_from_gdrive "1RFR7QNG0KS8u68IiB4ZR4fZAvyRwxyZ7" "cricket_ball_detector.pt"; \
+    \
+    # 2) Bat YOLO model
+    download_from_gdrive "1MQR-tOl86pAWfhtUtg7PDDDmsTq0eUM1" "bestBat.pt"; \
+    \
+    # 3) ViTPose checkpoint
+    download_from_gdrive "1mHoFS6PEGGx3E0INBdSfFyUr5kUtOUNs" "vitpose-b-multi-coco.pth"; \
+    \
+    # 4) LSTM Keras model
+    download_from_gdrive "1G_tJzRtSKaTJmoet0Cma8dCjgJCifTMu" "thirdlstm_shot_classifierupdated.keras"; \
+    \
+    # 5) Reference CSV
+    download_from_gdrive "1aKrG286A-JQecHA2IhIuR03fVxd-yMsx" "1.csv"; \
+    \
+    # 6) T5 model folder (Drive folder -> downloaded as zip)
+    download_from_gdrive "1n3IDbXWGjbm0dfxuM7y5cy_WDx1FwagS" "cricket_t5_final_clean.zip"; \
+    unzip /workspace/models/cricket_t5_final_clean.zip -d /workspace/models/cricket_t5_final_clean; \
+    rm /workspace/models/cricket_t5_final_clean.zip
 
 # ------------------------------------------------------------
 # Copy app.py into container
