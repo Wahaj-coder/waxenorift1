@@ -1,4 +1,4 @@
- import os
+import os
 import io
 import time
 import json
@@ -1582,3 +1582,4 @@ if __name__ == "__main__":
 else:
     print("🚀 WSGI import: loading models once for this worker...")
     load_models()
+
