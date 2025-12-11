@@ -1,0 +1,14 @@
+flask
+flask-cors
+gunicorn
+
+opencv-python-headless
+ultralytics
+shapely
+
+numpy
+pandas
+scikit-learn
+pillow
+
+transformers
