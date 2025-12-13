@@ -1,14 +1,15 @@
-flask
-flask-cors
-gunicorn
-
-opencv-python-headless
-ultralytics
-shapely
-
-numpy
-pandas
-scikit-learn
-pillow
-
-transformers
+flask==2.2.3
+flask-cors==3.1.1
+gunicorn==20.1.0
+opencv-python-headless==4.6.0.66  # Compatible with OpenCV and headless use
+ultralytics==8.0.91  # Latest stable ultralytics version
+shapely==1.8.0  # Compatible version
+numpy==1.23.5  # Latest compatible numpy version
+pandas==1.5.2  # Stable version compatible with numpy
+scikit-learn==1.0.2  # Compatible with your numpy version
+pillow==9.3.0  # Stable version
+transformers==4.25.1  # Latest stable transformers version
+ffmpeg==5.1.2  # Latest version for ffmpeg
+matplotlib==3.6.2  # Compatible with your setup
+munkres==1.1.4  # No conflict with other dependencies
+opencv-python==4.6.0.66  # Required OpenCV package version
