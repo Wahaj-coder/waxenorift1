@@ -51,24 +51,24 @@ RUN set -eux; \
         filename="$2"; \
         tmpdir="$(mktemp -d)"; \
         cd "$tmpdir"; \
-        echo "Starting download for $filename from Google Drive"; \
+        echo "Starting download for $filename from Google Drive" && \
         wget --quiet --save-cookies cookies.txt --keep-session-cookies --no-check-certificate \
           "https://docs.google.com/uc?export=download&id=${fileid}" -O- \
           | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1/p' > confirm.txt || true; \
-        confirm="$(cat confirm.txt 2>/dev/null || true)"; \
+        confirm="$(cat confirm.txt 2>/dev/null || true)" && \
         if [ -n "$confirm" ]; then \
-          echo "Confirm token found. Proceeding with download..."; \
+          echo "Confirm token found. Proceeding with download..." && \
           wget --quiet --load-cookies cookies.txt --no-check-certificate \
             "https://docs.google.com/uc?export=download&confirm=${confirm}&id=${fileid}" \
-            -O "$filename"; \
+            -O "$filename" && \
         else \
-          echo "No confirm token found. Direct download..."; \
+          echo "No confirm token found. Direct download..." && \
           wget --quiet --load-cookies cookies.txt --no-check-certificate \
             "https://docs.google.com/uc?export=download&id=${fileid}" \
-            -O "$filename"; \
-        fi; \
-        mv "$filename" /workspace/models/"$filename"; \
-        cd /workspace; \
+            -O "$filename" && \
+        fi && \
+        mv "$filename" /workspace/models/"$filename" && \
+        cd /workspace && \
         rm -rf "$tmpdir"; \
     }; \
     # Debugging for each file download
