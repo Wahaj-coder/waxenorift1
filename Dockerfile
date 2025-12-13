@@ -23,6 +23,52 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
+# Install gdown FIRST (for Google Drive downloads)
+# ------------------------------------------------------------
+RUN pip install --no-cache-dir gdown
+
+# ------------------------------------------------------------
+# Download model weights from Google Drive (FIRST, FAIL FAST)
+# ------------------------------------------------------------
+RUN set -eux; \
+    mkdir -p /workspace/models; \
+    \
+    echo "Downloading cricket_ball_detector.pt"; \
+    gdown --id 1RFR7QNG0KS8u68IiB4ZR4fZAvyRwxyZ7 \
+        -O /workspace/models/cricket_ball_detector.pt; \
+    \
+    echo "Downloading bestBat.pt"; \
+    gdown --id 1MQR-tOl86pAWfhtUtg7PDDDmsTq0eUM1 \
+        -O /workspace/models/bestBat.pt; \
+    \
+    echo "Downloading vitpose-b-multi-coco.pth"; \
+    gdown --id 1mHoFS6PEGGx3E0INBdSfFyUr5kUtOUNs \
+        -O /workspace/models/vitpose-b-multi-coco.pth; \
+    \
+    echo "Downloading thirdlstm_shot_classifierupdated.keras"; \
+    gdown --id 1G_tJzRtSKaTJmoet0Cma8dCjgJCifTMu \
+        -O /workspace/models/thirdlstm_shot_classifierupdated.keras; \
+    \
+    echo "Downloading 1.csv"; \
+    gdown --id 1aKrG286A-JQecHA2IhIuR03fVxd-yMsx \
+        -O /workspace/models/1.csv; \
+    \
+    echo "Downloading cricket_t5_final_clean.zip"; \
+    gdown --id 1XheZOO2UO4ZVtupBSNXQwaT09-S-WWtB \
+        -O /workspace/models/cricket_t5_final_clean.zip; \
+    \
+    echo "Unzipping cricket_t5_final_clean.zip"; \
+    unzip /workspace/models/cricket_t5_final_clean.zip \
+        -d /workspace/models/cricket_t5_final_clean; \
+    \
+    echo "Listing contents of /workspace/models/cricket_t5_final_clean:"; \
+    ls -l /workspace/models/cricket_t5_final_clean; \
+    \
+    echo "Removing zip file"; \
+    rm /workspace/models/cricket_t5_final_clean.zip; \
+    echo "Zip file removed successfully"
+
+# ------------------------------------------------------------
 # Install GPU-enabled PyTorch & TorchVision (CUDA 12.1)
 # ------------------------------------------------------------
 RUN pip install --no-cache-dir \
@@ -40,71 +86,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Clone ViTPose repository and install dependencies
 # ------------------------------------------------------------
 RUN git clone https://github.com/jaehyunnn/ViTPose_pytorch.git /workspace/ViTPose_pytorch
-
-# ------------------------------------------------------------
-# Download model weights from Google Drive (NO RETRIES)
-# ------------------------------------------------------------
-RUN set -eux; \
-    mkdir -p /workspace/models; \
-    download_from_gdrive() { \
-        fileid="$1"; \
-        filename="$2"; \
-        tmpdir="$(mktemp -d)"; \
-        cd "$tmpdir"; \
-        echo "Starting download for $filename from Google Drive"; \
-        wget --quiet --save-cookies cookies.txt --keep-session-cookies --no-check-certificate \
-        "https://docs.google.com/uc?export=download&id=${fileid}" -O- \
-        | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1/p' > confirm.txt; \
-        confirm="$(cat confirm.txt 2>/dev/null)"; \
-        if [ -n "$confirm" ]; then \
-            echo "Confirm token found. Proceeding with download..."; \
-            wget --quiet --load-cookies cookies.txt --no-check-certificate \
-            "https://docs.google.com/uc?export=download&confirm=${confirm}&id=${fileid}" \
-            -O "$filename"; \
-        else \
-            echo "No confirm token found. Direct download..."; \
-            wget --quiet --load-cookies cookies.txt --no-check-certificate \
-            "https://docs.google.com/uc?export=download&id=${fileid}" \
-            -O "$filename"; \
-        fi; \
-        mv "$filename" /workspace/models/"$filename"; \
-        cd /workspace; \
-        rm -rf "$tmpdir"; \
-    }; \
-    \
-    echo "Downloading cricket_ball_detector.pt"; \
-    download_from_gdrive "1RFR7QNG0KS8u68IiB4ZR4fZAvyRwxyZ7" "cricket_ball_detector.pt"; \
-    \
-    echo "Downloading bestBat.pt"; \
-    download_from_gdrive "1MQR-tOl86pAWfhtUtg7PDDDmsTq0eUM1" "bestBat.pt"; \
-    \
-    echo "Downloading vitpose-b-multi-coco.pth"; \
-    download_from_gdrive "1mHoFS6PEGGx3E0INBdSfFyUr5kUtOUNs" "vitpose-b-multi-coco.pth"; \
-    \
-    echo "Downloading thirdlstm_shot_classifierupdated.keras"; \
-    download_from_gdrive "1G_tJzRtSKaTJmoet0Cma8dCjgJCifTMu" "thirdlstm_shot_classifierupdated.keras"; \
-    \
-    echo "Downloading 1.csv"; \
-    download_from_gdrive "1aKrG286A-JQecHA2IhIuR03fVxd-yMsx" "1.csv"; \
-    \
-    echo "Downloading cricket_t5_final_clean.zip"; \
-    download_from_gdrive "1XheZOO2UO4ZVtupBSNXQwaT09-S-WWtB" "cricket_t5_final_clean.zip"; \
-    \
-    echo "Checking file size for cricket_t5_final_clean.zip"; \
-    ls -lh /workspace/models/cricket_t5_final_clean.zip; \
-    FILESIZE=$(stat --format=%s /workspace/models/cricket_t5_final_clean.zip); \
-    echo "File size: $FILESIZE bytes"; \
-    if [ $FILESIZE -lt 1000000000 ]; then echo "File is too small, download may have failed"; exit 1; fi; \
-    \
-    echo "Unzipping cricket_t5_final_clean.zip"; \
-    unzip /workspace/models/cricket_t5_final_clean.zip -d /workspace/models/cricket_t5_final_clean || { echo "Unzip failed"; exit 1; }; \
-    \
-    echo "Listing contents of /workspace/models/cricket_t5_final_clean:"; \
-    ls -l /workspace/models/cricket_t5_final_clean; \
-    \
-    echo "Removing zip file"; \
-    rm /workspace/models/cricket_t5_final_clean.zip; \
-    echo "Zip file removed successfully"
 
 # ------------------------------------------------------------
 # Copy app.py into container
