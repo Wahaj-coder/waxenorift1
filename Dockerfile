@@ -52,18 +52,18 @@ RUN set -eux; \
         tmpdir="$(mktemp -d)"; \
         cd "$tmpdir"; \
         echo "Starting download for $filename from Google Drive"; \
-        wget --quiet --timeout=600 --save-cookies cookies.txt --keep-session-cookies --no-check-certificate \
+        wget --quiet --save-cookies cookies.txt --keep-session-cookies --no-check-certificate \
           "https://docs.google.com/uc?export=download&id=${fileid}" -O- \
           | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1/p' > confirm.txt || true; \
         confirm="$(cat confirm.txt 2>/dev/null || true)"; \
         if [ -n "$confirm" ]; then \
           echo "Confirm token found. Proceeding with download..."; \
-          wget --quiet --timeout=600 --load-cookies cookies.txt --no-check-certificate \
+          wget --quiet --load-cookies cookies.txt --no-check-certificate \
             "https://docs.google.com/uc?export=download&confirm=${confirm}&id=${fileid}" \
             -O "$filename"; \
         else \
           echo "No confirm token found. Direct download..."; \
-          wget --quiet --timeout=600 --load-cookies cookies.txt --no-check-certificate \
+          wget --quiet --load-cookies cookies.txt --no-check-certificate \
             "https://docs.google.com/uc?export=download&id=${fileid}" \
             -O "$filename"; \
         fi; \
@@ -91,36 +91,17 @@ RUN set -eux; \
     ls -lh /workspace/models/cricket_t5_final_clean.zip; \
     FILESIZE=$(stat --format=%s /workspace/models/cricket_t5_final_clean.zip); \
     echo "File size: $FILESIZE bytes"; \
-    
-    # Updated file size check: Allow files >= 800MB
-    if [ $FILESIZE -lt 800000000 ]; then \
-        echo "File is too small, download may have failed. File size: $FILESIZE bytes"; \
-        exit 1; \
-    fi;
-    
-    # Verify the file exists and is not empty before unzipping
-    if [ ! -f /workspace/models/cricket_t5_final_clean.zip ]; then \
-        echo "Error: File does not exist or was not saved correctly"; \
-        exit 1; \
-    fi;
-    
+    if [ $FILESIZE -lt 1000000000 ]; then echo "File is too small, download may have failed"; exit 1; fi; \
+
     # Debugging unzipping
     echo "Unzipping cricket_t5_final_clean.zip"; \
     unzip /workspace/models/cricket_t5_final_clean.zip -d /workspace/models/cricket_t5_final_clean || { echo "Unzip failed"; exit 1; }; \
     echo "Unzip successful"; \
     
-    # Debugging listing contents of the unzipped folder
+    # Debugging list of files in the unzipped folder
     echo "Listing contents of /workspace/models/cricket_t5_final_clean:"; \
     ls -l /workspace/models/cricket_t5_final_clean; \
     
-    # Ensure there are files in the directory after unzip
-    if [ "$(ls -A /workspace/models/cricket_t5_final_clean)" ]; then \
-        echo "Files successfully extracted"; \
-    else \
-        echo "No files extracted, unzip might have failed"; \
-        exit 1; \
-    fi;
-
     # Debugging remove zip file
     echo "Removing zip file"; \
     rm /workspace/models/cricket_t5_final_clean.zip || { echo "Failed to remove zip file"; exit 1; }; \
