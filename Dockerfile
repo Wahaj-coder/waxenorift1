@@ -75,7 +75,7 @@ RUN set -eux; \
     download_from_gdrive "1mHoFS6PEGGx3E0INBdSfFyUr5kUtOUNs" "vitpose-b-multi-coco.pth"; \
     download_from_gdrive "1G_tJzRtSKaTJmoet0Cma8dCjgJCifTMu" "thirdlstm_shot_classifierupdated.keras"; \
     download_from_gdrive "1aKrG286A-JQecHA2IhIuR03fVxd-yMsx" "1.csv"; \
-    download_from_gdrive "1n3IDbXWGjbm0dfxuM7y5cy_WDx1FwagS" "cricket_t5_final_clean.zip"; \
+    download_from_gdrive "1XheZOO2UO4ZVtupBSNXQwaT09-S-WWtB" "cricket_t5_final_clean.zip"; \
     unzip /workspace/models/cricket_t5_final_clean.zip -d /workspace/models/cricket_t5_final_clean; \
     rm /workspace/models/cricket_t5_final_clean.zip
 
@@ -93,6 +93,7 @@ EXPOSE 8000
 # Start Gunicorn with 2 workers (tune -w based on VRAM)
 # ------------------------------------------------------------
 CMD ["gunicorn", "-w", "2", "--threads", "2", "-b", "0.0.0.0:8000", "app:app"]
+
 
 
 
