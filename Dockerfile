@@ -41,8 +41,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # ------------------------------------------------------------
 RUN git clone https://github.com/jaehyunnn/ViTPose_pytorch.git /workspace/ViTPose_pytorch
 
-#    pip install --no-cache-dir -r /workspace/ViTPose_pytorch/requirements.txt
-
 # ------------------------------------------------------------
 # Download model weights from Google Drive (BAKED INTO IMAGE)
 # ------------------------------------------------------------
@@ -87,10 +85,23 @@ RUN set -eux; \
     echo "Downloading cricket_t5_final_clean.zip"; \
     download_from_gdrive "1XheZOO2UO4ZVtupBSNXQwaT09-S-WWtB" "cricket_t5_final_clean.zip"; \
     echo "Download completed for all files"; \
+    
+    # Debugging file size after download
+    echo "Checking file size for cricket_t5_final_clean.zip"; \
+    ls -lh /workspace/models/cricket_t5_final_clean.zip; \
+    FILESIZE=$(stat --format=%s /workspace/models/cricket_t5_final_clean.zip); \
+    echo "File size: $FILESIZE bytes"; \
+    if [ $FILESIZE -lt 1000000000 ]; then echo "File is too small, download may have failed"; exit 1; fi; \
+
     # Debugging unzipping
     echo "Unzipping cricket_t5_final_clean.zip"; \
     unzip /workspace/models/cricket_t5_final_clean.zip -d /workspace/models/cricket_t5_final_clean || { echo "Unzip failed"; exit 1; }; \
     echo "Unzip successful"; \
+    
+    # Debugging list of files in the unzipped folder
+    echo "Listing contents of /workspace/models/cricket_t5_final_clean:"; \
+    ls -l /workspace/models/cricket_t5_final_clean; \
+    
     # Debugging remove zip file
     echo "Removing zip file"; \
     rm /workspace/models/cricket_t5_final_clean.zip || { echo "Failed to remove zip file"; exit 1; }; \
