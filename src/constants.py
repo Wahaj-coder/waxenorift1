@@ -8,7 +8,7 @@ import torch
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"✅ Using device: {DEVICE}")
 
-MODELS_ROOT = "/app/models"
+MODELS_ROOT = "/workspace/models"
 
 BALL_MODEL_PATH = os.path.join(MODELS_ROOT, "cricket_ball_detector.pt")
 BAT_MODEL_PATH = os.path.join(MODELS_ROOT, "bestBat.pt")

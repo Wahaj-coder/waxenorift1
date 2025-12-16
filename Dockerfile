@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /workspace
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
@@ -17,40 +17,40 @@ RUN pip install --no-cache-dir gdown
 
 # Download ALL model weights (OFFLINE, FAIL FAST)
 RUN set -eux; \
-    mkdir -p /app/models; \
+    mkdir -p /workspace/models; \
     \
     echo "Downloading cricket_ball_detector.pt"; \
     gdown --id 1RFR7QNG0KS8u68IiB4ZR4fZAvyRwxyZ7 \
-        -O /app/models/cricket_ball_detector.pt; \
+        -O /workspace/models/cricket_ball_detector.pt; \
     \
     echo "Downloading bestBat.pt"; \
     gdown --id 1MQR-tOl86pAWfhtUtg7PDDDmsTq0eUM1 \
-        -O /app/models/bestBat.pt; \
+        -O /workspace/models/bestBat.pt; \
     \
     echo "Downloading vitpose-b-multi-coco.pth"; \
     gdown --id 1mHoFS6PEGGx3E0INBdSfFyUr5kUtOUNs \
-        -O /app/models/vitpose-b-multi-coco.pth; \
+        -O /workspace/models/vitpose-b-multi-coco.pth; \
     \
     echo "Downloading thirdlstm_shot_classifierupdated.keras"; \
     gdown --id 1G_tJzRtSKaTJmoet0Cma8dCjgJCifTMu \
-        -O /app/models/thirdlstm_shot_classifierupdated.keras; \
+        -O /workspace/models/thirdlstm_shot_classifierupdated.keras; \
     \
     echo "Downloading 1.csv"; \
     gdown --id 1aKrG286A-JQecHA2IhIuR03fVxd-yMsx \
-        -O /app/models/1.csv; \
+        -O /workspace/models/1.csv; \
     \
     echo "Downloading cricket_t5_final_clean.zip"; \
     gdown --id 1XheZOO2UO4ZVtupBSNXQwaT09-S-WWtB \
-        -O /app/models/cricket_t5_final_clean.zip; \
+        -O /workspace/models/cricket_t5_final_clean.zip; \
     \
     echo "Unzipping cricket_t5_final_clean.zip"; \
-    unzip /app/models/cricket_t5_final_clean.zip \
-        -d /app/models/cricket_t5_final_clean; \
-    rm /app/models/cricket_t5_final_clean.zip; \
+    unzip /workspace/models/cricket_t5_final_clean.zip \
+        -d /workspace/models/cricket_t5_final_clean; \
+    rm /workspace/models/cricket_t5_final_clean.zip; \
     \
     echo "Downloading YOLOv8n.pt"; \
     gdown --id 19pOyZ3K7zKXUaTAE2TFFmf5Ze9eqnfbc \
-        -O /app/models/yolov8n.pt; \
+        -O /workspace/models/yolov8n.pt; \
     \
     echo "All models downloaded successfully"
 
