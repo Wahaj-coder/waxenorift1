@@ -79,7 +79,7 @@ RUN pip install --no-cache-dir \
 # ------------------------------------------------------------
 # TensorFlow (GPU)
 # ------------------------------------------------------------
-RUN pip install --no-cache-dir tensorflow-gpu==2.11.0
+RUN pip install --no-cache-dir tensorflow==2.20.0
 
 # ------------------------------------------------------------
 # Python dependencies (NO Flask / Gunicorn)
@@ -102,3 +102,4 @@ COPY app.py .
 # RunPod Serverless ENTRYPOINT
 # ------------------------------------------------------------
 CMD ["python", "app.py"]
+
