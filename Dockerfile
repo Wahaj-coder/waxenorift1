@@ -1,15 +1,15 @@
 # ============================================================
-# BASE IMAGE — Python 3.10 slim (GPU-ready via CUDA wheels)
+# BASE IMAGE — Python 3.12 slim
 # ============================================================
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # ------------------------------------------------------------
-# Set working directory inside container
+# Set working directory
 # ------------------------------------------------------------
 WORKDIR /workspace
 
 # ------------------------------------------------------------
-# Install system-level dependencies
+# System dependencies (ffmpeg REQUIRED for video processing)
 # ------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
@@ -23,12 +23,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
-# Install gdown FIRST (for Google Drive downloads)
+# Install gdown (Google Drive downloads)
 # ------------------------------------------------------------
 RUN pip install --no-cache-dir gdown
 
 # ------------------------------------------------------------
-# Download model weights from Google Drive (FIRST, FAIL FAST)
+# Download ALL model weights (OFFLINE, FAIL FAST)
 # ------------------------------------------------------------
 RUN set -eux; \
     mkdir -p /workspace/models; \
@@ -60,48 +60,45 @@ RUN set -eux; \
     echo "Unzipping cricket_t5_final_clean.zip"; \
     unzip /workspace/models/cricket_t5_final_clean.zip \
         -d /workspace/models/cricket_t5_final_clean; \
-    \
-    echo "Listing contents of /workspace/models/cricket_t5_final_clean:"; \
-    ls -l /workspace/models/cricket_t5_final_clean; \
-    \
-    echo "Removing zip file"; \
     rm /workspace/models/cricket_t5_final_clean.zip; \
-    echo "Zip file removed successfully"
+    \
+    echo "Downloading YOLOv8n.pt"; \
+    gdown --id 19pOyZ3K7zKXUaTAE2TFFmf5Ze9eqnfbc \
+        -O /workspace/models/yolov8n.pt; \
+    \
+    echo "All models downloaded successfully"
 
 # ------------------------------------------------------------
-# Install GPU-enabled PyTorch & TorchVision (CUDA 12.1)
+# Install PyTorch (CUDA 12.1 – RunPod compatible)
 # ------------------------------------------------------------
 RUN pip install --no-cache-dir \
     torch==2.4.1+cu121 \
     torchvision==0.19.1+cu121 \
     --index-url https://download.pytorch.org/whl/cu121
 
-# Install TensorFlow GPU (CUDA 12.1 compatible version)
-RUN pip install --no-cache-dir tensorflow-gpu==2.11.0
 # ------------------------------------------------------------
-# Install the rest of your Python dependencies
+# TensorFlow (GPU)
+# ------------------------------------------------------------
+RUN pip install --no-cache-dir tensorflow-gpu==2.11.0
+
+# ------------------------------------------------------------
+# Python dependencies (NO Flask / Gunicorn)
 # ------------------------------------------------------------
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ------------------------------------------------------------
-# Clone ViTPose repository and install dependencies
+# Clone ViTPose repository
 # ------------------------------------------------------------
-RUN git clone https://github.com/jaehyunnn/ViTPose_pytorch.git /workspace/ViTPose_pytorch
+RUN git clone https://github.com/jaehyunnn/ViTPose_pytorch.git \
+    /workspace/ViTPose_pytorch
 
 # ------------------------------------------------------------
-# Copy app.py into container
+# Copy serverless app
 # ------------------------------------------------------------
 COPY app.py .
 
 # ------------------------------------------------------------
-# Expose API port
+# RunPod Serverless ENTRYPOINT
 # ------------------------------------------------------------
-EXPOSE 8000
-
-# ------------------------------------------------------------
-# Start Gunicorn with 2 workers (tune -w based on VRAM)
-# ------------------------------------------------------------
-CMD ["gunicorn", "-w", "2", "--threads", "2", "-b", "0.0.0.0:8000", "app:app"]
-
-
+CMD ["python", "app.py"]
