@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  runpod_handler:
+    image: waxenorift
+    command: ["python", "src/handler.py"]
+    container_name: waxenorift_runpod_handler
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src/:/app/src/
+    environment:
+      - RUNPOD_HANDLER_TEST=TRUE
+    tty: true
