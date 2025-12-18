@@ -22,8 +22,8 @@ def load_models():
     """
     Load ALL models once at worker startup.
     """
-    global constants.ball_model, constants.bat_model, constants.yolo_model
-    global constants.vitpose, constants.lstm_model, constants.tokenizer, constants.t5_model
+    constants.ball_model, constants.bat_model, constants.yolo_model
+    constants.vitpose, constants.lstm_model, constants.tokenizer, constants.t5_model
 
     print("🔄 Loading models (fail-fast)...")
 
