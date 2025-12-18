@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from PIL import Image
-from torchvision.transforms import transforms
+from torchvision import transforms
 
 from shapely.geometry import Point, Polygon
 
