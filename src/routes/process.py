@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 from shapely.geometry import Point, Polygon
 
-from helper import *
+import helper
 
 
 def process_video(payload: dict):
@@ -63,14 +63,14 @@ def process_video(payload: dict):
     if not os.path.exists(video_path):
         raise FileNotFoundError("Video file not found after unzip")
 
-    if ball_model is None:
+    if helper.ball_model is None:
         raise RuntimeError("ball_model_not_loaded")
-    if bat_model is None:
+    if helper.bat_model is None:
         raise RuntimeError("bat_model_not_loaded")
 
     # ---- Paths / job setup ----
     filename_noext = os.path.splitext(os.path.basename(video_path))[0]
-    job_folder = os.path.join(PROCESSED_FOLDER, job_id)
+    job_folder = os.path.join(helper.PROCESSED_FOLDER, job_id)
     os.makedirs(job_folder, exist_ok=True)
 
     final_video_path = os.path.join(job_folder, os.path.basename(video_path))
@@ -93,7 +93,7 @@ def process_video(payload: dict):
     crop_size_px = min(orig_h, orig_w)
     crop_x1 = (orig_w - crop_size_px) // 2
     crop_y1 = (orig_h - crop_size_px) // 2
-    scale_from_640_to_crop = crop_size_px / float(CROP_SIZE)
+    scale_from_640_to_crop = crop_size_px / float(helper.CROP_SIZE)
 
     last_ball = deque(maxlen=2)
     last_bat = deque(maxlen=2)
@@ -106,7 +106,7 @@ def process_video(payload: dict):
     linger_counter = 0
     ball_active = False
 
-    frame_buffer = deque(maxlen=PRE_FRAMES)
+    frame_buffer = deque(maxlen=helper.PRE_FRAMES)
     post_frames_left = 0
     highlight_writer = None
     last_written_idx = -1
@@ -143,13 +143,13 @@ def process_video(payload: dict):
                 frame_idx += 1
                 continue
 
-            cropped = adaptive_square_crop(frame)
+            cropped = helper.adaptive_square_crop(frame)
             balls_current, bats_current = [], []
 
             # BALL DETECTION
             try:
-                ball_results = ball_model(
-                    cropped, conf=CONF_THRESH, iou=IOU, classes=[0]
+                ball_results = helper.ball_model(
+                    cropped, conf=helper.CONF_THRESH, iou=helper.IOU, classes=[0]
                 )
                 if ball_results and len(ball_results) > 0:
                     r0 = ball_results[0]
@@ -175,10 +175,10 @@ def process_video(payload: dict):
                 ball_missing_frames += 1
                 ball_visible_frames = max(0, ball_visible_frames - 1)
 
-            if ball_visible_frames >= BALL_SEEN_FRAMES:
+            if ball_visible_frames >= helper.BALL_SEEN_FRAMES:
                 ball_active = True
-                linger_counter = LINGER_FRAMES
-            elif ball_missing_frames >= BALL_MISS_FRAMES:
+                linger_counter = helper.LINGER_FRAMES
+            elif ball_missing_frames >= helper.BALL_MISS_FRAMES:
                 if linger_counter > 0:
                     linger_counter -= 1
                     ball_active = True
@@ -188,8 +188,11 @@ def process_video(payload: dict):
             # BAT DETECTION
             if ball_active:
                 try:
-                    bat_results = bat_model.predict(
-                        source=cropped, imgsz=CROP_SIZE, conf=CONF_THRESH, verbose=False
+                    bat_results = helper.bat_model.predict(
+                        source=cropped,
+                        imgsz=helper.CROP_SIZE,
+                        conf=helper.CONF_THRESH,
+                        verbose=False,
                     )
                     if bat_results:
                         for r in bat_results:
@@ -228,29 +231,29 @@ def process_video(payload: dict):
                     dx, dy = x2 - x1, y2 - y1
                     pred_x, pred_y = int(round(x2 + dx)), int(round(y2 + dy))
                     pred_conf = float(c2) * 0.8
-                    if pred_conf >= CONF_THRESH:
+                    if pred_conf >= helper.CONF_THRESH:
                         balls_current.append((pred_x, pred_y, pred_conf))
                 elif len(last_ball) == 1:
                     (x, y, c, f) = last_ball[-1]
                     pred_conf = float(c) * 0.9
-                    if pred_conf >= CONF_THRESH:
+                    if pred_conf >= helper.CONF_THRESH:
                         balls_current.append((int(x), int(y), pred_conf))
 
             # PREDICTIVE BAT
             if not bats_current and len(last_bat) > 0:
                 if len(last_bat) >= 2:
                     (pts1, conf1, f1), (pts2, conf2, f2) = last_bat[0], last_bat[1]
-                    cx1, cy1 = polygon_centroid(pts1)
-                    cx2, cy2 = polygon_centroid(pts2)
+                    cx1, cy1 = helper.polygon_centroid(pts1)
+                    cx2, cy2 = helper.polygon_centroid(pts2)
                     dx, dy = cx2 - cx1, cy2 - cy1
-                    pred_pts = translate_polygon(pts2, dx, dy)
+                    pred_pts = helper.translate_polygon(pts2, dx, dy)
                     pred_conf = float(conf2) * 0.8
-                    if pred_conf >= CONF_THRESH:
+                    if pred_conf >= helper.CONF_THRESH:
                         bats_current.append((pred_pts, pred_conf))
                 else:
                     pts, conf, f = last_bat[-1]
                     pred_conf = float(conf) * 0.9
-                    if pred_conf >= CONF_THRESH:
+                    if pred_conf >= helper.CONF_THRESH:
                         bats_current.append((pts, pred_conf))
 
             # CONTACT DETECTION
@@ -259,7 +262,7 @@ def process_video(payload: dict):
             contact_bat = None
             if balls_current and bats_current:
                 for cx, cy, bconf in balls_current:
-                    ball_area = Point(cx, cy).buffer(CONTACT_RADIUS)
+                    ball_area = Point(cx, cy).buffer(helper.CONTACT_RADIUS)
                     for pts, bat_conf in bats_current:
                         poly = Polygon(pts)
                         if poly.is_valid and ball_area.intersects(poly):
@@ -273,7 +276,7 @@ def process_video(payload: dict):
                         break
 
             # HANDLE CONTACT
-            if contact_found and frame_idx > last_contact_frame + CONTACT_MIN_GAP:
+            if contact_found and frame_idx > last_contact_frame + helper.CONTACT_MIN_GAP:
                 ann = cropped.copy()
                 if contact_bat:
                     pts, conf = contact_bat
@@ -336,7 +339,8 @@ def process_video(payload: dict):
                     }
 
                 frame_highlight = (
-                    (len(contacts)) * (PRE_FRAMES + POST_FRAMES + 1) + PRE_FRAMES
+                    (len(contacts)) * (helper.PRE_FRAMES + helper.POST_FRAMES + 1)
+                    + helper.PRE_FRAMES
                     if highlight_writer
                     else None
                 )
@@ -361,10 +365,10 @@ def process_video(payload: dict):
                     highlight_writer.write(frame)
                     last_written_idx = frame_idx
                     written_frames += 1
-                    post_frames_left = POST_FRAMES
+                    post_frames_left = helper.POST_FRAMES
 
                 last_contact_frame = frame_idx
-                skip_until = frame_idx + CONTACT_MIN_GAP
+                skip_until = frame_idx + helper.CONTACT_MIN_GAP
 
             if post_frames_left > 0 and highlight_writer:
                 highlight_writer.write(frame)
