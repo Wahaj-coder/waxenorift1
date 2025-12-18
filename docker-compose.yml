@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   runpod_handler:
-    image: waxenorift
+    image: waxenorift1
     command: ["python", "src/handler.py"]
     container_name: waxenorift_runpod_handler
     ports:
