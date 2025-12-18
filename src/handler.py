@@ -1,3 +1,8 @@
+import tensorflow as tf
+
+# Force TensorFlow to use CPU only (prevents JIT compilation errors)
+tf.config.set_visible_devices([], 'GPU')
+
 import os
 
 # Force offline mode (fail fast if any model is missing)
