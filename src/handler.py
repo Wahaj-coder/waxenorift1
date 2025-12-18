@@ -1,9 +1,9 @@
+# Force TensorFlow to CPU before any TF/Keras imports
 import tensorflow as tf
-
-# Force TensorFlow to use CPU only (prevents JIT compilation errors)
 tf.config.set_visible_devices([], 'GPU')
 
 import os
+
 # Force offline mode (fail fast if any model is missing)
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -23,6 +23,11 @@ except Exception as _e:
     print(f"❌ Model load failed: {_e}")
     raise
 
+# Safe RunPod import
+try:
+    import runpod
+except ModuleNotFoundError:
+    runpod = None
 
 def handler(event):
     """RunPod Serverless handler.
@@ -42,13 +47,9 @@ def handler(event):
             return {"error": "invalid_action", "detail": f"Unknown action: {action}"}
     except Exception as e:
         import traceback
-
         traceback.print_exc()
         return {"error": "internal_server_error", "detail": str(e)}
 
-
-if __name__ == "__main__":
-    # Models are loaded at import time. This is just the RunPod entrypoint.
-    import runpod
-
+if __name__ == "__main__" and runpod:
+    # Start serverless only if runpod module exists
     runpod.serverless.start({"handler": handler})
