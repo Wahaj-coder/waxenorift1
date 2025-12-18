@@ -1,8 +1,11 @@
+# handler.py
+
 # Force TensorFlow to CPU before any TF/Keras imports
 import tensorflow as tf
 tf.config.set_visible_devices([], 'GPU')
 
 import os
+import traceback
 
 # Force offline mode (fail fast if any model is missing)
 os.environ["HF_HUB_OFFLINE"] = "1"
@@ -13,14 +16,19 @@ os.environ.setdefault("HF_HOME", "/tmp/hf")
 os.environ.setdefault("TRANSFORMERS_CACHE", "/tmp/hf/transformers")
 os.environ.setdefault("HF_HUB_CACHE", "/tmp/hf/hub")
 
+# Import routes
 from routes.classify import classify_video
 from routes.process import process_video
-from helper import *
+import helper
 
+# Load all models at startup (fail-fast)
 try:
-    load_models()
-except Exception as _e:
-    print(f"❌ Model load failed: {_e}")
+    print("🔄 Loading models...")
+    helper.load_models()
+    print("✅ Models loaded successfully")
+except Exception as e:
+    print(f"❌ Model load failed: {e}")
+    traceback.print_exc()
     raise
 
 # Safe RunPod import
@@ -28,6 +36,7 @@ try:
     import runpod
 except ModuleNotFoundError:
     runpod = None
+    print("⚠ RunPod module not found, skipping serverless startup")
 
 def handler(event):
     """RunPod Serverless handler.
@@ -39,17 +48,29 @@ def handler(event):
         payload = (event or {}).get("input") or {}
         action = payload.get("action", "process")
 
+        print(f"📌 Received event. Action: {action}")
+
         if action == "process":
-            return process_video(payload)
+            result = process_video(payload)
+            print(f"✅ Video processed successfully. Job ID: {result.get('job_id')}")
+            return result
+
         elif action == "classify":
-            return classify_video(payload)
+            result = classify_video(payload)
+            print(f"✅ Video classified successfully. Job ID: {result.get('job_id')}")
+            return result
+
         else:
-            return {"error": "invalid_action", "detail": f"Unknown action: {action}"}
+            msg = f"Unknown action: {action}"
+            print(f"❌ {msg}")
+            return {"error": "invalid_action", "detail": msg}
+
     except Exception as e:
-        import traceback
+        print(f"❌ Internal server error: {e}")
         traceback.print_exc()
         return {"error": "internal_server_error", "detail": str(e)}
 
+# Only start serverless if runpod module exists
 if __name__ == "__main__" and runpod:
-    # Start serverless only if runpod module exists
+    print("🚀 Starting RunPod serverless...")
     runpod.serverless.start({"handler": handler})
