@@ -24,7 +24,7 @@ RUN set -eux; \
     echo "Downloading cricket_ball_detector.pt"; \
     gdown --id 1RFR7QNG0KS8u68IiB4ZR4fZAvyRwxyZ7 -O /workspace/models/cricket_ball_detector.pt; \
     echo "Downloading bestBat.pt"; \
-    gdown --id 1MQR-tOl86pAWfhtUtg7PDDDmsTq0eUM1 -O /workspace/models/bestBat.pt; \
+    gdown --id 1p0QgmrtpMjnDDdQwBPAFuDrzjIE_pXzU -O /workspace/models/bestBat.pt; \
     echo "Downloading vitpose-b-multi-coco.pth"; \
     gdown --id 1mHoFS6PEGGx3E0INBdSfFyUr5kUtOUNs -O /workspace/models/vitpose-b-multi-coco.pth; \
     echo "Downloading thirdlstm_shot_classifierupdated.keras"; \
@@ -53,3 +53,4 @@ COPY src/ ./src/
 
 # Entry point
 CMD ["python", "src/handler.py"]
+
